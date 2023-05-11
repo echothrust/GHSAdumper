@@ -13,18 +13,24 @@ jobs:
     steps:
       - name: Git checkout GHSAdumper
         uses: actions/checkout@v3
-
-      - name: Git checkout advisory-database
-        uses: actions/checkout@v3
+      - name: Download latest advisory-database
+        uses: robinraju/release-downloader@v1.8
         with:
-          # Repository name with owner. For example, actions/checkout
-          # Default: ${{ github.repository }}
           repository: "github/advisory-database"
-          # Relative path under $GITHUB_WORKSPACE to place the repository
-          path: "advisory-database"
-          # Default: 1
-          #fetch-depth: 0
+          latest: true
+          fileName: "advisories-database.zip"
 
+#      - name: Git checkout advisory-database
+#        uses: actions/checkout@v3
+#        with:
+#          # Repository name with owner. For example, actions/checkout
+#          # Default: ${{ github.repository }}
+#          repository: "github/advisory-database"
+#          # Relative path under $GITHUB_WORKSPACE to place the repository
+#          path: "advisory-database"
+#          # Default: 1
+#          #fetch-depth: 0
+#
       #    - name: Use Node.js ${{ matrix.node-version }}
       #      uses: actions/setup-node@v3
       #      with:
@@ -43,22 +49,23 @@ jobs:
           echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
           sudo apt-get update
           sudo apt-get install -y mongodb-database-tools
+          unzip advisories-database.zip
 
       - name: Import the advisories
         run: |
-          find advisory-database/advisories -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
+          find advisory-database/advisories/gihub-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
 
-      - name: Dump the advisories into multiple formats
+      - name: dump and export the GHSA.advisories
         run: |
           mongodump  --db=GHSA --collection=advisories
-          mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-advisories-$(date +"%Y%m%d").json
+          mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
 
       - name: "Upload MongoDumper Artifacts"
         uses: actions/upload-artifact@v3
         with:
-          name: mongodumps
+          name: reviewed
           path: |
-            GHSA-advisories*.json
+            GHSA*.json
             dump
           retention-days: 1
 #    - run: npm install
