@@ -58,12 +58,15 @@ jobs:
         run: |
           MYSQL_HOST=$(docker inspect  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ghsadumper_master_1)
           mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-reviewed-$(date +"%Y%m%d").sql
+          mysql -unosql -pnosql -h ${MYSQL_HOST} GHSA < modify-advisories.sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
+
 
       - name: zip mongo
-        run: zip -r -9 mongo-release.zip dump GHSA-reviewed-*.json
+        run: zip -r -9 mongo-release.zip dump GHSA-reviewed*.json
 
       - name: zip mysql
-        run: zip -r -9 mysql-release.zip GHSA-reviewed-*.sql
+        run: zip -r -9 mysql-release.zip GHSA-reviewed*.sql
 
       - name: Release Latest MongoDump
         uses: softprops/action-gh-release@v1

@@ -1,0 +1,13 @@
+ALTER TABLE advisories MODIFY COLUMN `doc` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL INVISIBLE;
+ALTER TABLE advisories ADD COLUMN `GHSA` char(22) GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.id')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `severity` varchar(10) GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.database_specific.severity')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `github_reviewed` boolean GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.database_specific.github_reviewed')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `schema_version` char(6) GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.schema_version')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `summary` text GENERATED ALWAYS AS (trim(json_unquote(json_compact(json_extract(`doc`,'$.summary'))))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `details` longtext GENERATED ALWAYS AS (trim(json_unquote(json_compact(json_extract(`doc`,'$.details'))))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `modified` TIMESTAMP GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.modified')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `published` TIMESTAMP GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.published')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `aliases` longtext GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.aliases')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `affected` longtext GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.affected')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `refs` longtext GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.references')))) VIRTUAL;
+ALTER TABLE advisories ADD COLUMN `severities` longtext GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.severity')))) VIRTUAL;
