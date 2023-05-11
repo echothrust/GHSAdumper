@@ -1,0 +1,79 @@
+# MaxScale documentation:
+# https://mariadb.com/kb/en/mariadb-maxscale-6/
+
+# Global parameters
+#
+# Complete list of configuration options:
+# https://mariadb.com/kb/en/mariadb-maxscale-6-mariadb-maxscale-configuration-guide/
+
+[maxscale]
+threads=auto
+admin_host=0.0.0.0
+admin_port=8989
+admin_auth=false
+admin_secure_gui=false
+
+# Server definitions
+#
+# Set the address of the server to the network
+# address of a MariaDB server.
+#
+
+[server1]
+type=server
+address=master
+port=3306
+protocol=MariaDBBackend
+
+# Monitor for the servers
+#
+# This will keep MaxScale aware of the state of the servers.
+# MariaDB Monitor documentation:
+# https://mariadb.com/kb/en/maxscale-6-monitors/
+#
+# Create the monitor user with:
+#
+#  CREATE USER 'monitor_user'@'%' IDENTIFIED BY 'monitor_pw';
+#  GRANT REPLICATION CLIENT, FILE, SUPER, RELOAD, PROCESS, SHOW DATABASES, EVENT ON *.* TO 'monitor_user'@'%';
+#
+
+[MariaDB-Monitor]
+type=monitor
+module=mariadbmon
+servers=server1
+user=monitor_user
+password=monitor_pw
+monitor_interval=2s
+
+# Service definitions
+#
+# Service Definition for a read-only service and
+# a read/write splitting service.
+#
+# Create the service user with:
+#
+#  CREATE USER 'service_user'@'%' IDENTIFIED BY 'service_pw';
+#  GRANT SELECT ON mysql.user TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.db TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.tables_priv TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.columns_priv TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.procs_priv TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.proxies_priv TO 'service_user'@'%';
+#  GRANT SELECT ON mysql.roles_mapping TO 'service_user'@'%';
+#  GRANT SHOW DATABASES ON *.* TO 'service_user'@'%';
+#
+
+[ETSCTF_PLACEHOLDER4]
+type=service
+router=readconnroute
+servers=server1
+user=nosql
+password=nosql
+
+[NoSQL-Listener]
+type=listener
+service=ETSCTF_PLACEHOLDER4
+protocol=nosqlprotocol
+nosqlprotocol.user=nosql
+nosqlprotocol.password=nosql
+port=27017

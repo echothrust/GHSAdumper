@@ -1,0 +1,17 @@
+version: '2'
+services:
+    master:
+        image: mariadb:10.2
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: Y
+        volumes:
+            - ./sql:/docker-entrypoint-initdb.d
+        command: mysqld --log-bin=mariadb-bin --binlog-format=ROW --server-id=3000
+
+    maxscale:
+        image: mariadb/maxscale:latest
+        container_name: maxscale
+        volumes:
+            - ./maxscale.cnf.d/example.cnf:/etc/maxscale.cnf
+        ports:
+            - "17017:27017"
