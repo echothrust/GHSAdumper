@@ -1,6 +1,13 @@
 name: MongoDB Dumper
+on:
+#  schedule:
+#    - cron: "* */48 * * *"
+  workflow_dispatch:
+  repository_dispatch:
 
-on: [push]
+concurrency:
+  group: run-dev
+  cancel-in-progress: true
 
 jobs:
   build:
