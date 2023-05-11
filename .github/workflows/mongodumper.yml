@@ -64,14 +64,24 @@ jobs:
           mongodump  --db=GHSA --collection=advisories
           mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
 
+      - name: zip em
+        run: zip -r -9  release.zip dump GHSA-reviewed-*.json
+
       - name: "Upload MongoDumper Artifacts"
         uses: actions/upload-artifact@v3
         with:
-          name: reviewed
-          path: |
-            GHSA*.json
-            dump
+          name: release.zip
+          path: release.zip
           retention-days: 1
+
+      - name: Release Latest
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: false
+          name: GHSA-mongodumper-latest
+          files: release.zip
+          tag_name: GHSA-mongodumper-latest
+
 #    - run: npm install
 #
 #    - run: npm test
