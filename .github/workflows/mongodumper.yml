@@ -15,27 +15,11 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
-        mongodb-version: ["6.0"]
+        mongodb-version: ["4.4"]
 
     steps:
       - name: Git checkout GHSAdumper
         uses: actions/checkout@v3
-
-#      - name: Git checkout advisory-database
-#        uses: actions/checkout@v3
-#        with:
-#          # Repository name with owner. For example, actions/checkout
-#          # Default: ${{ github.repository }}
-#          repository: "github/advisory-database"
-#          # Relative path under $GITHUB_WORKSPACE to place the repository
-#          path: "advisory-database"
-#          # Default: 1
-#          #fetch-depth: 0
-#
-      #    - name: Use Node.js ${{ matrix.node-version }}
-      #      uses: actions/setup-node@v3
-      #      with:
-      #        node-version: ${{ matrix.node-version }}
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.8.0
@@ -49,7 +33,7 @@ jobs:
           wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
           echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-database-tools
+          sudo apt-get install -y mongodb-database-tools mariadb-client
       - name: Download the advisories zip file
         run: |
           wget -q https://github.com/github/advisory-database/archive/refs/heads/main.zip
@@ -65,29 +49,41 @@ jobs:
           mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
           mongoexport --jsonArray --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
 
-      - name: zip em
-        run: zip -r -9 release.zip dump GHSA-reviewed-*.json
+      - name: start docker services
+        run: |
+          docker-compose -f maxscale-compose.yml up -d
+          sleep 15
 
-      - name: "Upload MongoDumper Artifacts"
-        uses: actions/upload-artifact@v3
-        with:
-          name: release.zip
-          path: release.zip
-          retention-days: 1
+      - name: Import the json into maxscale mongo
+        run: |
+          mongoimport --uri=mongodb://localhost:17017/GHSA -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
 
-      - name: Release Latest
+      - name: Dump the database
+        run: |
+          mysqldump -unosql -pnosql -h 172.23.0.3 GHSA > GHSA-reviewed-$(date +"%Y%m%d").sql
+
+      - name: zip mongo
+        run: zip -r -9 mongo-release.zip dump GHSA-reviewed-*.json
+
+      - name: zip mysql
+        run: zip -r -9 mysql-release.zip GHSA-reviewed-*.sql
+
+      - name: Release Latest MongoDump
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
           name: GHSA-mongodumper-latest
           files: |
-            release.zip
+            mongo-release.zip
             GHSA-reviewed*.json
           tag_name: GHSA-mongodumper-latest
 
-#    - run: npm install
-#
-#    - run: npm test
-#      env:
-#        CI: true
-# docker run -d --name mxs -v $PWD/my-maxscale.cnf:/etc/maxscale.cnf.d/my-maxscale.cnf mariadb/maxscale:latest
+      - name: Release Latest MySQLDump
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: false
+          name: GHSA-mysqldumper-latest
+          files: |
+            mysql-release.zip
+            GHSA-reviewed*.sql
+          tag_name: GHSA-mysqldumper-latest
