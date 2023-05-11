@@ -1,4 +1,4 @@
-name: Dumper
+name: MongoDB Dumper
 
 on: [push]
 
@@ -8,43 +8,59 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x]
-        mongodb-version: ['6.0']
+        mongodb-version: ["6.0"]
 
     steps:
-    - name: Git checkout GHSAdumper
-      uses: actions/checkout@v3
+      - name: Git checkout GHSAdumper
+        uses: actions/checkout@v3
 
-    - name: Git checkout github
-      uses: actions/checkout@v3
-      with:
-        # Repository name with owner. For example, actions/checkout
-        # Default: ${{ github.repository }}
-        repository: 'github/advisory-database'
-        # Relative path under $GITHUB_WORKSPACE to place the repository
-        path: 'advisory-database'
-        # Default: 1
-        #fetch-depth: 0
+      - name: Git checkout advisory-database
+        uses: actions/checkout@v3
+        with:
+          # Repository name with owner. For example, actions/checkout
+          # Default: ${{ github.repository }}
+          repository: "github/advisory-database"
+          # Relative path under $GITHUB_WORKSPACE to place the repository
+          path: "advisory-database"
+          # Default: 1
+          #fetch-depth: 0
 
+      #    - name: Use Node.js ${{ matrix.node-version }}
+      #      uses: actions/setup-node@v3
+      #      with:
+      #        node-version: ${{ matrix.node-version }}
 
-#    - name: Use Node.js ${{ matrix.node-version }}
-#      uses: actions/setup-node@v3
-#      with:
-#        node-version: ${{ matrix.node-version }}
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.8.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
 
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.8.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
+      - name: Install mongo tools command
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-database-tools
 
-    - name: Install mongosh command
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y wget gnupg
-        wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-        sudo apt-get update
-        sudo apt-get install -y mongodb-database-tools
+      - name: Import the advisories
+        run: |
+          find advisory-database/advisories -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
 
+      - name: Dump the advisories into multiple formats
+        run: |
+          mongodump  --db=GHSA --collection=advisories
+          mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-advisories-$(date +"%Y%m%d").json
+
+      - name: "Upload MongoDumper Artifacts"
+        uses: actions/upload-artifact@v3
+        with:
+          name: mongodumps
+          path: |
+            GHSA-advisories*.json
+            dump
+          retention-days: 1
 #    - run: npm install
 #
 #    - run: npm test
