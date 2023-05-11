@@ -63,6 +63,7 @@ jobs:
         run: |
           mongodump  --db=GHSA --collection=advisories
           mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
+          mongoexport --jsonArray --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
 
       - name: zip em
         run: zip -r -9 release.zip dump GHSA-reviewed-*.json
