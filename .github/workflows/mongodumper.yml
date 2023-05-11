@@ -79,7 +79,9 @@ jobs:
         with:
           generate_release_notes: false
           name: GHSA-mongodumper-latest
-          files: release.zip
+          files: |
+            release.zip
+            GHSA-reviewed*.json
           tag_name: GHSA-mongodumper-latest
 
 #    - run: npm install
@@ -87,3 +89,4 @@ jobs:
 #    - run: npm test
 #      env:
 #        CI: true
+# docker run -d --name mxs -v $PWD/my-maxscale.cnf:/etc/maxscale.cnf.d/my-maxscale.cnf mariadb/maxscale:latest
