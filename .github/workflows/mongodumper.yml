@@ -12,11 +12,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x]
-        mongodb-version: ["4.4"]
-
     steps:
       - name: Git checkout GHSAdumper
         uses: actions/checkout@v3
@@ -24,7 +19,7 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.8.0
         with:
-          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-version: "4.4"
 
       - name: Install mongo tools command
         run: |
@@ -40,14 +35,16 @@ jobs:
           unzip -q main.zip
 
       - name: Import the advisories
-        run: |
-          find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
+        run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
 
-      - name: dump and export the GHSA.advisories
-        run: |
-          mongodump  --db=GHSA --collection=advisories
-          mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
-          mongoexport --jsonArray --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
+      - name: dump the GHSA.advisories
+        run: mongodump  --db=GHSA --collection=advisories
+
+      - name: Export the GHSA.advisories
+        run: mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
+
+      - name: Export the GHSA.advisories as Array
+        run: mongoexport --jsonArray --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
 
       - name: start docker services
         run: |
@@ -55,8 +52,7 @@ jobs:
           sleep 15
 
       - name: Import the json into maxscale mongo
-        run: |
-          mongoimport --uri=mongodb://localhost:17017/GHSA -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
+        run: mongoimport --uri=mongodb://localhost:17017/GHSA -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
 
       - name: Dump the database
         run: |
@@ -73,18 +69,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: false
-          name: GHSA-mongodumper-latest
+          name: GHSAdumper-latest
           files: |
             mongo-release.zip
             GHSA-reviewed*.json
-          tag_name: GHSA-mongodumper-latest
-
-      - name: Release Latest MySQLDump
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: false
-          name: GHSA-mysqldumper-latest
-          files: |
             mysql-release.zip
             GHSA-reviewed*.sql
-          tag_name: GHSA-mysqldumper-latest
+          tag_name: GHSAdump-latest
