@@ -1,0 +1,92 @@
+name: MariaDB Dumper
+on:
+#  schedule:
+#    - cron: "* */48 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+
+concurrency:
+  group: run-dev
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+        mongodb-version: ["6.0"]
+
+    steps:
+      - name: Git checkout GHSAdumper
+        uses: actions/checkout@v3
+
+#      - name: Git checkout advisory-database
+#        uses: actions/checkout@v3
+#        with:
+#          # Repository name with owner. For example, actions/checkout
+#          # Default: ${{ github.repository }}
+#          repository: "github/advisory-database"
+#          # Relative path under $GITHUB_WORKSPACE to place the repository
+#          path: "advisory-database"
+#          # Default: 1
+#          #fetch-depth: 0
+#
+      #    - name: Use Node.js ${{ matrix.node-version }}
+      #      uses: actions/setup-node@v3
+      #      with:
+      #        node-version: ${{ matrix.node-version }}
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.8.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+
+      - name: Install mongo tools command
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-database-tools
+      - name: Download the advisories zip file
+        run: |
+          wget -q https://github.com/github/advisory-database/archive/refs/heads/main.zip
+          unzip -q main.zip
+
+      - name: Import the advisories
+        run: |
+          find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
+
+      - name: dump and export the GHSA.advisories
+        run: |
+          mongodump  --db=GHSA --collection=advisories
+          mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
+
+      - name: zip em
+        run: zip -r -9 release.zip dump GHSA-reviewed-*.json
+
+      - name: "Upload MongoDumper Artifacts"
+        uses: actions/upload-artifact@v3
+        with:
+          name: release.zip
+          path: release.zip
+          retention-days: 1
+
+      - name: Release Latest
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: false
+          name: GHSA-mongodumper-latest
+          files: |
+            release.zip
+            GHSA-reviewed*.json
+          tag_name: GHSA-mongodumper-latest
+
+#    - run: npm install
+#
+#    - run: npm test
+#      env:
+#        CI: true
+# docker run -d --name mxs -v $PWD/my-maxscale.cnf:/etc/maxscale.cnf.d/my-maxscale.cnf mariadb/maxscale:latest
