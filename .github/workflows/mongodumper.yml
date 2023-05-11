@@ -65,7 +65,7 @@ jobs:
           mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
 
       - name: zip em
-        run: zip -r -9  release.zip dump GHSA-reviewed-*.json
+        run: zip -r -9 release.zip dump GHSA-reviewed-*.json
 
       - name: "Upload MongoDumper Artifacts"
         uses: actions/upload-artifact@v3
