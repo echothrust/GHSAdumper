@@ -23,7 +23,7 @@ jobs:
 
       - name: Install mongo tools command
         run: |
-          export RELEASE_VERSION=$(date +"%Y%m%d")
+          echo "{RELEASE_VERSION}={$(date +"%Y%m%d")}" >> "$GITHUB_ENV"
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
@@ -81,4 +81,4 @@ jobs:
             *.zip
             GHSA-reviewed*.sql
             GHSA-reviewed*.json
-          tag_name: GHSAdump-{{env.RELEASE_VERSION}}
+          tag_name: "GHSAdump-${{ env.RELEASE_VERSION }}"
