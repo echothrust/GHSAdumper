@@ -1,3 +1,4 @@
+ALTER TABLE advisories CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
 ALTER TABLE advisories MODIFY COLUMN `doc` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL INVISIBLE;
 ALTER TABLE advisories ADD COLUMN `GHSA` char(22) GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.id')))) VIRTUAL;
 ALTER TABLE advisories ADD COLUMN `severity` varchar(10) GENERATED ALWAYS AS (json_unquote(json_compact(json_extract(`doc`,'$.database_specific.severity')))) VIRTUAL;
