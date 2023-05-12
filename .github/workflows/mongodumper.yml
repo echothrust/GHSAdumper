@@ -23,7 +23,7 @@ jobs:
 
       - name: Install mongo tools command
         run: |
-          echo "{RELEASE_VERSION}={$(date +"%Y%m%d")}" >> "$GITHUB_ENV"
+          echo "RELEASE_VERSION=$(date +"%Y%m%d")" >> "$GITHUB_ENV"
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
