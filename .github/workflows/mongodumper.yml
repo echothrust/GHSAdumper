@@ -36,33 +36,41 @@ jobs:
           unzip -q main.zip
           rm main.zip
 
-      - name: Import the advisories
-        run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
-
-      - name: dump the GHSA.advisories
-        run: mongodump  --db=GHSA --collection=advisories
-
-      - name: Export the GHSA.advisories
-        run: mongoexport --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-$(date +"%Y%m%d").json
-
-      - name: Export the GHSA.advisories as Array
-        run: mongoexport --jsonArray --host localhost:27017 --collection=advisories --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
-
       - name: start docker services
         run: |
           docker-compose -f maxscale-compose.yml up -d
           sleep 15
 
+      - name: Import the advisories to mongodb/mysql
+        run: find advisory-database-main/advisories -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
+
+      - name: dump the GHSA.advisories
+        run: mongodump  --db=GHSA --collection=advisories
+
+      - name: Export the reviewed GHSA.advisories
+        run: mongoexport --host localhost:17017 --collection=advisories --db=GHSA --query='{"database_specific.github_reviewed":true}' --out=GHSA-reviewed-$(date +"%Y%m%d").json
+
+      - name: Export the reviewed GHSA.advisories as Array
+        run: mongoexport --jsonArray --host localhost:17017 --collection=advisories --query='{"database_specific.github_reviewed":true}' --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
+
+      - name: Export the full GHSA.advisories
+        run: mongoexport --host localhost:17017 --collection=advisories --db=GHSA --out=GHSA-full-$(date +"%Y%m%d").json
+
+      - name: Export the full GHSA.advisories as Array
+        run: mongoexport --jsonArray --host localhost:17017 --collection=advisories --db=GHSA --out=GHSA-full-ARR-$(date +"%Y%m%d").json
+
       - name: Import the json into maxscale mongo
-        run: mongoimport --uri=mongodb://localhost:17017/GHSA -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
+        run: mongoimport --uri=mongodb://localhost:17017/test -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
 
       - name: Dump the database
         run: |
           MYSQL_HOST=$(docker inspect  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ghsadumper_master_1)
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-reviewed-$(date +"%Y%m%d").sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-$(date +"%Y%m%d").sql
           mysql -unosql -pnosql -h ${MYSQL_HOST} GHSA < modify-advisories.sql
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
-
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-columns-$(date +"%Y%m%d").sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-$(date +"%Y%m%d").sql
+          mysql -unosql -pnosql -h ${MYSQL_HOST} test < modify-advisories.sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
 
       - name: zip files
         run: |
@@ -71,6 +79,8 @@ jobs:
           zip -9 GHSA-reviewed-columns-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-columns-$(date +"%Y%m%d").sql
           zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-$(date +"%Y%m%d").json
           zip -9 GHSA-reviewed-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-ARR-$(date +"%Y%m%d").json
+          zip -9 GHSA-full-$(date +"%Y%m%d")-mongoexport.zip     GHSA-full-$(date +"%Y%m%d").json
+          zip -9 GHSA-full-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-full-ARR-$(date +"%Y%m%d").json
 
       - name: Release Latest MongoDump
         uses: softprops/action-gh-release@v1
@@ -80,5 +90,6 @@ jobs:
           files: |
             *.zip
             GHSA-reviewed*.sql
+            GHSA-full*.sql
             GHSA-reviewed*.json
           tag_name: GHSAdump-${{ env.RELEASE_VERSION }}
