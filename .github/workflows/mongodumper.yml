@@ -81,4 +81,4 @@ jobs:
             *.zip
             GHSA-reviewed*.sql
             GHSA-reviewed*.json
-          tag_name: "GHSAdump-${{ env.RELEASE_VERSION }}"
+          tag_name: GHSAdump-${{ env.RELEASE_VERSION }}
