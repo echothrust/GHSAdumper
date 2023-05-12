@@ -1,10 +1,10 @@
 # GHSAdumper
-A simple project grabbing the `github/advisory-database` repository and converting them into various dumps ready to be used.
+A simple project grabbing the `github.com/github/advisory-database` repository and converting into into dumps of various formats.
 
 Currently the following list of dumps is generated
 * mongodump
 * mongoexport
-* mysqldump (id,_doc)
+* mysqldump
 
 The following files can be found on each release
 
