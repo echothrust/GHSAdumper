@@ -23,6 +23,7 @@ jobs:
 
       - name: Install mongo tools command
         run: |
+          export RELEASE_VERSION=$(date +"%Y%m%d")
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
@@ -33,6 +34,7 @@ jobs:
         run: |
           wget -q https://github.com/github/advisory-database/archive/refs/heads/main.zip
           unzip -q main.zip
+          rm main.zip
 
       - name: Import the advisories
         run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:27017 -d GHSA -c advisories {} \;
@@ -62,11 +64,13 @@ jobs:
           mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
 
 
-      - name: zip mongo
-        run: zip -r -9 mongo-release.zip dump GHSA-reviewed*.json
-
-      - name: zip mysql
-        run: zip -r -9 mysql-release.zip GHSA-reviewed*.sql
+      - name: zip files
+        run: |
+          zip -r -9 GHSA-reviewed-mongodump-$(date +"%Y%m%d").zip dump
+          zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-$(date +"%Y%m%d").sql
+          zip -9 GHSA-reviewed-columns-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-columns-$(date +"%Y%m%d").sql
+          zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-$(date +"%Y%m%d").json
+          zip -9 GHSA-reviewed-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-ARR-$(date +"%Y%m%d").json
 
       - name: Release Latest MongoDump
         uses: softprops/action-gh-release@v1
@@ -74,8 +78,7 @@ jobs:
           generate_release_notes: false
           name: GHSAdumper-latest
           files: |
-            mongo-release.zip
-            GHSA-reviewed*.json
-            mysql-release.zip
+            *.zip
             GHSA-reviewed*.sql
-          tag_name: GHSAdump-latest
+            GHSA-reviewed*.json
+          tag_name: GHSAdump-{{env.RELEASE_VERSION}}
