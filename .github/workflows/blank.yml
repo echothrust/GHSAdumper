@@ -18,6 +18,6 @@ jobs:
     steps:
       # Runs a single command using the runners shell
       - name: Set GITHUB_VARIABLE
-        run: echo "{RELEASE_VERSION}={$(date +"%Y%m%d")}" >> "$GITHUB_ENV"
+        run: echo "RELEASE_VERSION=$(date +"%Y%m%d")" >> "$GITHUB_ENV"
       - name: check ${{env.RELEASE_VERSION}}
         run: env
