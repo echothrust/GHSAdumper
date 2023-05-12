@@ -20,4 +20,4 @@ jobs:
       - name: Set GITHUB_VARIABLE
         run: echo "{RELEASE_VERSION}={$(date +"%Y%m%d")}" >> "$GITHUB_ENV"
       - name: check ${{env.RELEASE_VERSION}}
-        run: echo Hello, world!
+        run: env
