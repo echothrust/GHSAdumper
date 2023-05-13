@@ -45,7 +45,7 @@ jobs:
         run: find advisory-database-main/advisories -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
 
       - name: dump the GHSA.advisories
-        run: mongodump  --db=GHSA --collection=advisories
+        run: mongodump  --host localhost:17017 --db=GHSA --collection=advisories
 
       - name: Export the reviewed GHSA.advisories
         run: mongoexport --host localhost:17017 --collection=advisories --db=GHSA --query='{"database_specific.github_reviewed":true}' --out=GHSA-reviewed-$(date +"%Y%m%d").json
