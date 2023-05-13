@@ -63,7 +63,7 @@ monitor_interval=2s
 #  GRANT SHOW DATABASES ON *.* TO 'service_user'@'%';
 #
 
-[ETSCTF_PLACEHOLDER4]
+[MariaMongoDB]
 type=service
 router=readconnroute
 servers=server1
@@ -72,7 +72,7 @@ password=nosql
 
 [NoSQL-Listener]
 type=listener
-service=ETSCTF_PLACEHOLDER4
+service=MariaMongoDB
 protocol=nosqlprotocol
 nosqlprotocol.user=nosql
 nosqlprotocol.password=nosql
