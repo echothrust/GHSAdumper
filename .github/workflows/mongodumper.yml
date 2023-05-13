@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  import_export:
+    name: Initial Import Export
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout GHSAdumper
