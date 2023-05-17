@@ -92,5 +92,6 @@ jobs:
             *.zip
             GHSA-reviewed*.sql
             GHSA-full*.sql
+            GHSA-full*.json
             GHSA-reviewed*.json
           tag_name: GHSAdump-${{ env.RELEASE_VERSION }}
