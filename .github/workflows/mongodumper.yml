@@ -1,7 +1,7 @@
 name: MongoDB Dumper
 on:
-#  schedule:
-#    - cron: "* */48 * * *"
+  schedule:
+    - cron: "* * */1 * *"
   workflow_dispatch:
   repository_dispatch:
 
