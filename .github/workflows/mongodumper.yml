@@ -43,7 +43,7 @@ jobs:
           sleep 15
 
       - name: Import the advisories to mongodb/mysql
-        run: find advisory-database-main/advisories -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
+        run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
 
       - name: dump the GHSA.advisories
         run: mongodump  --host localhost:17017 --db=GHSA --collection=advisories
