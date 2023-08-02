@@ -43,7 +43,7 @@ jobs:
           sleep 15
 
       - name: Import the advisories to mongodb/mysql
-        run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
+        run: find advisory-database-main/advisories -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
 
       - name: dump the GHSA.advisories
         run: mongodump  --host localhost:17017 --db=GHSA --collection=advisories
@@ -60,24 +60,9 @@ jobs:
       - name: Export the full GHSA.advisories as Array
         run: mongoexport --jsonArray --host localhost:17017 --collection=advisories --db=GHSA --out=GHSA-full-ARR-$(date +"%Y%m%d").json
 
-      - name: Import the json into maxscale mongo
-        run: mongoimport --uri=mongodb://localhost:17017/test -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
-
-      - name: Dump the database
-        run: |
-          MYSQL_HOST=$(docker inspect  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ghsadumper_master_1)
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-$(date +"%Y%m%d").sql
-          mysql -unosql -pnosql -h ${MYSQL_HOST} GHSA < modify-advisories.sql
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-columns-$(date +"%Y%m%d").sql
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-$(date +"%Y%m%d").sql
-          mysql -unosql -pnosql -h ${MYSQL_HOST} test < modify-advisories.sql
-          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
-
       - name: zip files
         run: |
           zip -r -9 GHSA-reviewed-mongodump-$(date +"%Y%m%d").zip dump
-          zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-$(date +"%Y%m%d").sql
-          zip -9 GHSA-reviewed-columns-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-columns-$(date +"%Y%m%d").sql
           zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-$(date +"%Y%m%d").json
           zip -9 GHSA-reviewed-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-ARR-$(date +"%Y%m%d").json
           zip -9 GHSA-full-$(date +"%Y%m%d")-mongoexport.zip     GHSA-full-$(date +"%Y%m%d").json
@@ -90,8 +75,6 @@ jobs:
           name: GHSAdumper-${{ env.RELEASE_VERSION }}
           files: |
             *.zip
-            GHSA-reviewed*.sql
-            GHSA-full*.sql
             GHSA-full*.json
             GHSA-reviewed*.json
           tag_name: GHSAdump-${{ env.RELEASE_VERSION }}
