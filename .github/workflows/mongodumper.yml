@@ -34,9 +34,9 @@ jobs:
 
       - name: start docker services
         run: |
-          sleep 5
+          sleep 15
           docker ps
-          docker-compose -f maxscale-compose.yml up -d
+          sudo docker-compose -f maxscale-compose.yml up -d
           sudo mkdir -p /data/db
           sudo mongod --fork --syslog
           sleep 5
