@@ -21,11 +21,11 @@ jobs:
         run: |
           echo "RELEASE_VERSION=$(date +"%Y%m%d")" >> "$GITHUB_ENV"
           sudo apt-get update
-          sudo apt-get install -y wget gnupg
+          sudo apt-get install -y wget gnupg docker-compose
           wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
           echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-org docker-compose
+          sudo apt-get install -y mongodb-org
       - name: Download the advisories zip file
         run: |
           wget -q https://github.com/github/advisory-database/archive/refs/heads/main.zip
@@ -34,7 +34,7 @@ jobs:
 
       - name: start docker services
         run: |
-          which docker-compose
+          docker ps
           docker-compose -f maxscale-compose.yml up -d
           sudo mkdir -p /data/db
           sudo mongod --fork --syslog
