@@ -33,4 +33,4 @@ jobs:
       - name: start docker services
         run: |
           echo $DOCKER_SOCK
-          ls -la /var/run/docker.sock /var/run/docker/docker.sock || true
+          sudo ls -la /var/run/docker.sock /var/run/docker/docker.sock || true
