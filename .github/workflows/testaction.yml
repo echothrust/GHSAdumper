@@ -1,4 +1,4 @@
-name: MongoDB Dumper
+name: MongoDB Dumper test action
 on:
   workflow_dispatch:
   repository_dispatch:
