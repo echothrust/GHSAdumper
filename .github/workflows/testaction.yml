@@ -32,8 +32,5 @@ jobs:
 
       - name: start docker services
         run: |
-          docker ps
-          docker-compose -f maxscale-compose.yml up -d
-          sudo mkdir -p /data/db
-          sudo mongod --fork --syslog
-          sleep 5
+          echo $DOCKER_SOCK
+          ls -la /var/run/docker.sock /var/run/docker/docker.sock || true
