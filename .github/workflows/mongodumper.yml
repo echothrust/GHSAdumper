@@ -87,7 +87,7 @@ jobs:
 #          zip -9 GHSA-reviewed-columns-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-columns-$(date +"%Y%m%d").sql
 
       - name: Release Latest MongoDump
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: false
           name: GHSAdumper-${{ env.RELEASE_VERSION }}
