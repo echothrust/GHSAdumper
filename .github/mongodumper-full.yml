@@ -1,0 +1,97 @@
+name: MongoDB Dumper
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+  repository_dispatch:
+
+concurrency:
+  group: run-dev
+  cancel-in-progress: true
+
+jobs:
+  import_export:
+    name: Initial Import Export
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Git checkout GHSAdumper
+        uses: actions/checkout@v3
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.8.0
+        with:
+          mongodb-version: "4.4"
+
+      - name: Install mongo tools command
+        run: |
+          echo "RELEASE_VERSION=$(date +"%Y%m%d")" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-database-tools
+      - name: Download the advisories zip file
+        run: |
+          wget -q https://github.com/github/advisory-database/archive/refs/heads/main.zip
+          unzip -q main.zip
+          rm main.zip
+
+      - name: start docker services
+        run: |
+          docker-compose -f maxscale-compose.yml up -d
+          sleep 15
+
+      - name: Import the advisories to mongodb/mysql
+        run: find advisory-database-main/advisories/github-reviewed -type f -name "*.json" -exec mongoimport --host localhost:17017 -d GHSA -c advisories {} \;
+
+      - name: dump the GHSA.advisories
+        run: mongodump  --host localhost:17017 --db=GHSA --collection=advisories
+
+      - name: Export the reviewed GHSA.advisories
+        run: mongoexport --host localhost:17017 --collection=advisories --db=GHSA --query='{"database_specific.github_reviewed":true}' --out=GHSA-reviewed-$(date +"%Y%m%d").json
+
+      - name: Export the reviewed GHSA.advisories as Array
+        run: mongoexport --jsonArray --host localhost:17017 --collection=advisories --query='{"database_specific.github_reviewed":true}' --db=GHSA --out=GHSA-reviewed-ARR-$(date +"%Y%m%d").json
+
+      - name: Export the full GHSA.advisories
+        run: mongoexport --host localhost:17017 --collection=advisories --db=GHSA --out=GHSA-full-$(date +"%Y%m%d").json
+
+      - name: Export the full GHSA.advisories as Array
+        run: mongoexport --jsonArray --host localhost:17017 --collection=advisories --db=GHSA --out=GHSA-full-ARR-$(date +"%Y%m%d").json
+
+      - name: Import the json into maxscale mongo
+        run: mongoimport --uri=mongodb://localhost:17017/test -c advisories GHSA-reviewed-$(date +"%Y%m%d").json
+
+      - name: Dump the database
+        run: |
+          MYSQL_HOST=$(docker inspect  -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ghsadumper_master_1)
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-$(date +"%Y%m%d").sql
+          mysql -unosql -pnosql -h ${MYSQL_HOST} GHSA < modify-advisories.sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} GHSA > GHSA-full-columns-$(date +"%Y%m%d").sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-$(date +"%Y%m%d").sql
+          mysql -unosql -pnosql -h ${MYSQL_HOST} test < modify-advisories.sql
+          mysqldump -unosql -pnosql -h ${MYSQL_HOST} test > GHSA-reviewed-columns-$(date +"%Y%m%d").sql
+
+      - name: zip files
+        run: |
+          zip -r -9 GHSA-reviewed-mongodump-$(date +"%Y%m%d").zip dump
+          zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-$(date +"%Y%m%d").sql
+          zip -9 GHSA-reviewed-columns-$(date +"%Y%m%d")-mysqldump.zip GHSA-reviewed-columns-$(date +"%Y%m%d").sql
+          zip -9 GHSA-reviewed-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-$(date +"%Y%m%d").json
+          zip -9 GHSA-reviewed-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-reviewed-ARR-$(date +"%Y%m%d").json
+          zip -9 GHSA-full-$(date +"%Y%m%d")-mongoexport.zip     GHSA-full-$(date +"%Y%m%d").json
+          zip -9 GHSA-full-ARR-$(date +"%Y%m%d")-mongoexport.zip GHSA-full-ARR-$(date +"%Y%m%d").json
+
+      - name: Release Latest MongoDump
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: false
+          name: GHSAdumper-${{ env.RELEASE_VERSION }}
+          files: |
+            *.zip
+            GHSA-reviewed*.sql
+            GHSA-full*.sql
+            GHSA-full*.json
+            GHSA-reviewed*.json
+          tag_name: GHSAdump-${{ env.RELEASE_VERSION }}
