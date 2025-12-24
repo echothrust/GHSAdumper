@@ -9,6 +9,9 @@ concurrency:
   group: run-dev
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   import_export:
     name: Initial Import Export
